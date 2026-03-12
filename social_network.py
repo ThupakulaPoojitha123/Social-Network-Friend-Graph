@@ -1,4 +1,4 @@
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 
 class SocialNetwork:
     def __init__(self):
@@ -12,25 +12,11 @@ class SocialNetwork:
         self.graph[user1].add(user2)
         self.graph[user2].add(user1)
     
-    def remove_friendship(self, user1, user2):
-        self.graph[user1].discard(user2)
-        self.graph[user2].discard(user1)
-    
     def get_friends(self, user):
         return list(self.graph[user])
     
     def mutual_friends(self, user1, user2):
         return list(self.graph[user1] & self.graph[user2])
-    
-    def friend_suggestions(self, user, top_k=5):
-        suggestions = defaultdict(int)
-        for friend in self.graph[user]:
-            for friend_of_friend in self.graph[friend]:
-                if friend_of_friend != user and friend_of_friend not in self.graph[user]:
-                    suggestions[friend_of_friend] += 1
-        
-        sorted_suggestions = sorted(suggestions.items(), key=lambda x: -x[1])
-        return [user for user, _ in sorted_suggestions[:top_k]]
     
     def shortest_path(self, user1, user2):
         if user1 == user2:
@@ -47,20 +33,68 @@ class SocialNetwork:
                 if friend not in visited:
                     visited.add(friend)
                     queue.append((friend, path + [friend]))
+        
         return []
+    
+    def friend_recommendations(self, user, top_k=3):
+        recommendations = defaultdict(int)
+        
+        for friend in self.graph[user]:
+            for fof in self.graph[friend]:
+                if fof != user and fof not in self.graph[user]:
+                    recommendations[fof] += 1
+        
+        return sorted(recommendations.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
 if __name__ == "__main__":
-    network = SocialNetwork()
-    users = ["Alice", "Bob", "Charlie", "David", "Eve"]
-    for user in users:
-        network.add_user(user)
+    print("\n=== SOCIAL NETWORK ===")
+    sn = SocialNetwork()
     
-    network.add_friendship("Alice", "Bob")
-    network.add_friendship("Alice", "Charlie")
-    network.add_friendship("Bob", "David")
-    network.add_friendship("Charlie", "Eve")
-    
-    print("Alice's friends:", network.get_friends("Alice"))
-    print("Mutual friends of Alice and Bob:", network.mutual_friends("Alice", "Bob"))
-    print("Friend suggestions for David:", network.friend_suggestions("David"))
-    print("Path from Alice to Eve:", network.shortest_path("Alice", "Eve"))
+    while True:
+        print("\n" + "="*40)
+        print("1. Add User")
+        print("2. Add Friendship")
+        print("3. View Friends")
+        print("4. Find Mutual Friends")
+        print("5. Find Connection Path")
+        print("6. Get Friend Recommendations")
+        print("7. Exit")
+        choice = input("Enter choice: ")
+        
+        if choice == '1':
+            user = input("Enter username: ")
+            sn.add_user(user)
+            print(f"✓ User '{user}' added")
+        elif choice == '2':
+            user1 = input("Enter first user: ")
+            user2 = input("Enter second user: ")
+            sn.add_friendship(user1, user2)
+            print(f"✓ {user1} and {user2} are now friends")
+        elif choice == '3':
+            user = input("Enter username: ")
+            friends = sn.get_friends(user)
+            print(f"{user}'s friends: {friends if friends else 'None'}")
+        elif choice == '4':
+            user1 = input("Enter first user: ")
+            user2 = input("Enter second user: ")
+            mutual = sn.mutual_friends(user1, user2)
+            print(f"Mutual friends: {mutual if mutual else 'None'}")
+        elif choice == '5':
+            user1 = input("Enter start user: ")
+            user2 = input("Enter end user: ")
+            path = sn.shortest_path(user1, user2)
+            if path:
+                print(f"Connection path: {' -> '.join(path)}")
+            else:
+                print("No connection found")
+        elif choice == '6':
+            user = input("Enter username: ")
+            recs = sn.friend_recommendations(user)
+            if recs:
+                print("Friend recommendations:")
+                for name, count in recs:
+                    print(f"  {name} ({count} mutual friends)")
+            else:
+                print("No recommendations")
+        elif choice == '7':
+            break
